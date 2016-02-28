@@ -1,0 +1,86 @@
+---
+title: "Machine Learning Project"
+author: "Kayla"
+date: "February 7, 2016"
+output: html_document
+---
+
+##Weight Lifting Experiment: Attempting to predict the manner in which a participant lifts a dumbell
+
+###Summary 
+This report is utilizing machine learning to build an alogarithm, which will predict based off of readings from several accelerometers the manner in which a participant lifted a dumbell. There were 5 possible outcomes for how a dumbell was lifted:   
++ Exactly according to the specification   
++ Throwing the elbows to the front  
++ Lifting the dumbbell only halfway  
++ Lowering the dumbbell only halfway  
++ Throwing the hips to the front     
+  
+  
+The data used in this project is availiable [here]("http://groupware.les.inf.puc-rio.br/har"). 
+
+###Training Data Preperation 
+1. After downloading the data, you must read it into R 
+```{r}
+train<-read.csv("training.csv")
+```
+
+2. Exploratory Analysis  
+```{r}
+dim<-dim(train) #Saving dimensions for later user 
+names(train) #First review looks like we will not need the first 6 variables 
+summary(train$classe) #Taking a quick look at the variable of interest 
+```
+
+3. Removing Uneeded variables (First 6, low variablity, high NA)
+```{r}
+#Preidentified as unuseful 
+train <- train[, 6:dim(train)[2]] #Removing 1st 6 since they wont be helpful for modeling 
+
+#Removing low variance 
+library(caret)
+nzv<-nearZeroVar(train) #Identifying Variables with near zero variance 
+train<-train[,-nzv] #Removing Variables with near zero variance from the dataset 
+
+#High Missings or NAs
+cutoff<-nrow(train)*.5#Creating a treshold for 50% Missings 
+train<-train[colSums(is.na(train)) < cutoff]
+
+```
+This process cut out approximately 2/3rds of the variables, which will make modeling easier
+
+4. Partition Training Data 
+  - By partitioning the training data into another training and test dataset, it will allow for additional testing on the results 
+  
+```{r}
+split<-createDataPartition(train$classe,p=.7,list=F)
+train<-train[split,]
+test<-train[-split,]
+```
+
+
+
+###Modeling 
+I am going to try two different modeling techniques to decide the best fit (compared to my test data)
+
+1. R Part 
+```{r}
+model_rpart<- train(classe ~ ., data=train, method="rpart")#Creating Model
+prediction_rpart<-predict(model_rpart$finalModel, test,type="class")
+confusionMatrix(prediction_rpart,test$classe)
+```
+
+2. Random Forest 
+```{r}
+library(randomForest)
+model_rf <- randomForest(classe ~ .,data = train,na.action=na.omit)
+prediction_rf<-predict(model_rf, test)
+confusionMatrix(prediction_rf,test$classe)
+```
+
+
+###Decision 
+After review of the results of the predictions using my testing dataset it is obvious that the best model was built using Random Forrest. 
+
+
+### Resources 
+The data used in this project is availiable [here]("http://groupware.les.inf.puc-rio.br/har"). 
